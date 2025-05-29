@@ -21,9 +21,11 @@ public class RedisService {
     }
 
     public List<SampleData> getRecentData(int no) {
-        return redisTemplate.opsForList().range(DATA_KEY, 0, no -1)
-                .stream()
-                .map(data -> (SampleData) data)
-                .collect(Collectors.toList());
+        return (List<SampleData>) (Object) redisTemplate.opsForList().range(DATA_KEY, 0, no -1);
+
+//        return redisTemplate.opsForList().range(DATA_KEY, 0, no -1)
+//                .stream()
+//                .map(data -> (SampleData) data)
+//                .collect(Collectors.toList());
     }
 }
