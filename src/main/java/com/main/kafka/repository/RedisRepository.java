@@ -17,7 +17,7 @@ public class RedisRepository {
     private static final int DATA_LIMIT = 100;
 
     public void addUserActivity(UserActivity userActivity) {
-        String key = DATA_KEY + userActivity.getSender();
+        String key = DATA_KEY + userActivity.getUserId();
 
         // 등록된 시간순으로 정렬해서 등록
         redisTemplate.opsForZSet().add(

@@ -9,7 +9,7 @@ import java.util.Map;
 
 @Data
 public class UserActivity implements Serializable {
-    private String sender;
+    private String userId;
     private String activityType;
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime time;
