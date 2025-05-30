@@ -6,6 +6,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.time.ZoneId;
+import java.util.Set;
 
 @Repository
 @AllArgsConstructor
@@ -28,5 +29,10 @@ public class RedisRepository {
 
         redisTemplate.opsForList().leftPush(RECENT_KEY, userActivity);
         redisTemplate.opsForList().trim(RECENT_KEY, 0, DATA_LIMIT -1);
+    }
+
+    public Set<Object> getUserActivities(String userId) {
+        String key = DATA_KEY + userId;
+        return redisTemplate.opsForZSet().reverseRange(key, 0, DATA_LIMIT);
     }
 }
