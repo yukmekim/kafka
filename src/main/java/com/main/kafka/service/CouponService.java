@@ -50,7 +50,7 @@ public class CouponService {
      * @param userId 사용자 ID
      * */
     @Transactional
-    public Response<Void> acquiredCoupon(String couponId, String userId) {
+    public Response<CouponEvent> acquiredCoupon(String couponId, String userId) {
         if (hasAlreadyAcquired(couponId, userId)) {
             return Response.payload(false, "이미 발급된 쿠폰");
         }
@@ -72,9 +72,11 @@ public class CouponService {
             CouponEvent event = CouponEvent.builder()
                     .couponId(couponId)
                     .userId(userId)
+                    .eventType(CouponEvent.EventType.ISSUE)
+                    .time(LocalDateTime.now())
                     .build();
             kafkaTemplate.send(topics, event);
-            return Response.payload(true, "발급 이력 저장");
+            return Response.payload(true, event,"발급 이력 저장");
         }
         return Response.payload(false, "소진");
     }

@@ -11,8 +11,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class Response<T> {
     private boolean success;
-    private String message;
     private T data;
+    private String message;
 
     public static <T> Response<T> payload(boolean success, String message) {
         return Response.<T>builder()
@@ -21,11 +21,11 @@ public class Response<T> {
                 .build();
     }
 
-    public static <T> Response<T> payload(boolean success, String message, T data) {
+    public static <T> Response<T> payload(boolean success, T data, String message) {
         return Response.<T>builder()
-                .message(message)
                 .success(success)
                 .data(data)
+                .message(message)
                 .build();
     }
 }

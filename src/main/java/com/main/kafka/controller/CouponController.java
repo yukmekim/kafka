@@ -1,5 +1,6 @@
 package com.main.kafka.controller;
 
+import com.main.kafka.dto.CouponEvent;
 import com.main.kafka.dto.Response;
 import com.main.kafka.service.CouponService;
 import lombok.RequiredArgsConstructor;
@@ -20,8 +21,8 @@ public class CouponController {
     }
 
     @PostMapping("/{couponId}/acquired")
-    public ResponseEntity<Response<Void>> acquiredCoupon(@PathVariable String couponId,
-                                                         @RequestHeader String userId) {
+    public ResponseEntity<Response<CouponEvent>> acquiredCoupon(@PathVariable String couponId,
+                                                                @RequestHeader String userId) {
         return ResponseEntity.ok(couponService.acquiredCoupon(couponId, userId));
     }
 }
