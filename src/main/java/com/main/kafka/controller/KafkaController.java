@@ -1,5 +1,6 @@
 package com.main.kafka.controller;
 
+import com.main.kafka.dto.Response;
 import com.main.kafka.dto.UserActivity;
 import com.main.kafka.service.RedisService;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +22,8 @@ public class KafkaController {
     }
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<UserActivity>> getUserActivities(@PathVariable String userId) {
-        return ResponseEntity.ok(redisService.getUserActivities(userId));
+    public ResponseEntity<Response<List<UserActivity>>> getUserActivities(@PathVariable String userId) {
+        List<UserActivity> data = redisService.getUserActivities(userId);
+        return ResponseEntity.ok(Response.result(true, "dd", data));
     }
 }

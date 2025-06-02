@@ -14,7 +14,7 @@ public class Producer {
 
     private final KafkaTemplate<String, UserActivity> kafkaTemplate;
 
-    @Value("${app.default-topic}")
+    @Value("${spring.kafka.template.default-topic}")
     private String topics;
 
     public void sendUserActivity(UserActivity data) {

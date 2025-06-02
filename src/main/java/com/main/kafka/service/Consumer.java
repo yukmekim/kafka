@@ -15,7 +15,7 @@ public class Consumer {
     //private final RedisService redisService;
     private final RedisRepository redisRepository;
 
-    @KafkaListener(topics = "${app.default-topic}")
+    @KafkaListener(topics = "${spring.kafka.template.default-topic}")
     public void consume(UserActivity data) {
         redisRepository.addUserActivity(data);
         log.info("Received data : {}", data);
