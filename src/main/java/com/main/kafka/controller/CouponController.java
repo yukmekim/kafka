@@ -12,10 +12,16 @@ import org.springframework.web.bind.annotation.*;
 public class CouponController {
     private final CouponService couponService;
 
-    @GetMapping("/init/{couponId}")
+    @PostMapping("/{couponId}/init")
     public ResponseEntity<Response<Void>> initializeCouponStock(@PathVariable String couponId,
                                                              @RequestParam(defaultValue = "100") int quantity) {
         couponService.initializeCouponStock(couponId, quantity);
-        return ResponseEntity.ok(Response.result(true, "초기화"));
+        return ResponseEntity.ok(Response.payload(true, "초기화"));
+    }
+
+    @PostMapping("/{couponId}/acquired")
+    public ResponseEntity<Response<Void>> acquiredCoupon(@PathVariable String couponId,
+                                                         @RequestHeader String userId) {
+        return ResponseEntity.ok(couponService.acquiredCoupon(couponId, userId));
     }
 }

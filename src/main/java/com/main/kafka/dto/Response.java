@@ -14,14 +14,14 @@ public class Response<T> {
     private String message;
     private T data;
 
-    public static <T> Response<T> result(boolean success, String message) {
+    public static <T> Response<T> payload(boolean success, String message) {
         return Response.<T>builder()
                 .message(message)
                 .success(success)
                 .build();
     }
 
-    public static <T> Response<T> result(boolean success, String message, T data) {
+    public static <T> Response<T> payload(boolean success, String message, T data) {
         return Response.<T>builder()
                 .message(message)
                 .success(success)
