@@ -20,8 +20,4 @@ public class CouponEvent implements Serializable {
     private String couponCode;
     private EventType eventType;
     private LocalDateTime time;
-
-    public CouponEvent() {
-        this.time = LocalDateTime.now();
-    }
 }

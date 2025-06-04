@@ -2,7 +2,6 @@ package com.main.kafka.service;
 
 import com.main.kafka.dto.CouponEvent;
 import com.main.kafka.dto.Response;
-import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataAccessException;
@@ -40,7 +39,7 @@ public class CouponService {
         redisTemplate.opsForValue().set(
                 STOCK_KEY_PREFIX + couponId,
                 quantity,
-                1, TimeUnit.HOURS
+                30, TimeUnit.MINUTES
         );
     }
 
@@ -55,13 +54,9 @@ public class CouponService {
             return Response.payload(false, "이미 발급된 쿠폰");
         }
 
-        redisTemplate.opsForHash().put(HISTORY_KEY_PREFIX + couponId,
-                userId,
-                LocalDateTime.now());
-
         boolean locked = redisTemplate.opsForValue().setIfAbsent(LOCK_KEY_PREFIX + couponId,
                 userId,
-                10, TimeUnit.SECONDS);
+                5, TimeUnit.SECONDS);
 
         if(!locked) {
             return Response.payload(false, "시스템이 혼잡한 상태");
@@ -76,9 +71,9 @@ public class CouponService {
                     .time(LocalDateTime.now())
                     .build();
             kafkaTemplate.send(topics, event);
-            return Response.payload(true, event,"발급 이력 저장");
+            return Response.payload(true, event,"쿠폰 발급 이력 저장");
         }
-        return Response.payload(false, "소진");
+        return Response.payload(false, "쿠폰 소진");
     }
 
     /**
@@ -99,7 +94,7 @@ public class CouponService {
                 operations.watch(STOCK_KEY_PREFIX + couponId);
 
                 Integer stock = (Integer) operations.opsForValue().get(STOCK_KEY_PREFIX + couponId);
-                if (stock <= 0) {
+                if (stock == null || stock <= 0) {
                     operations.unwatch();
                     return false;
                 }
