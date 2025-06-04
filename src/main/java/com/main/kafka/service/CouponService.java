@@ -109,4 +109,9 @@ public class CouponService {
             }
         });
     }
+
+    public int remainCouponStock(String couponId) {
+        return (Integer) redisTemplate.opsForValue()
+                .get(STOCK_KEY_PREFIX + couponId);
+    }
 }

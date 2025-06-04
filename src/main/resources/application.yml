@@ -8,8 +8,9 @@ spring:
       port: 6379
       lettuce:
         pool:
-          max-active: 8
-          max-idle: 8
+          max-active: 200
+          max-idle: 150
+          min-idle: 10
   jackson:
     serialization:
       write-dates-as-timestamps: false
