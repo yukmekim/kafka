@@ -2,14 +2,12 @@ package com.main.kafka.service;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -24,19 +22,15 @@ class CouponServiceTest {
     void couponAcquiredTest() throws InterruptedException {
         String couponId = "1";
 
-        int count = 100;
+        int count = 1000;
         ExecutorService executorService = Executors.newFixedThreadPool(count);
         CountDownLatch latch = new CountDownLatch(count);
 
         for (int i = 0; i < count; i++) {
             String userId = String.valueOf(i);
             executorService.submit(() -> {
-               try {
-                   System.out.println(userId);
-                   couponService.acquiredCoupon(couponId, userId);
-               } finally {
-                   latch.countDown();
-               }
+                couponService.decreaseStock(couponId, userId);
+                latch.countDown();
             });
         }
 
@@ -44,7 +38,7 @@ class CouponServiceTest {
         executorService.shutdown();
 
         Integer stock = couponService.remainCouponStock(couponId);
-        assertEquals(0, stock);
         System.out.printf("남은 수량 %s", stock);
+        assertEquals(0, stock);
     }
 }

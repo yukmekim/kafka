@@ -3,19 +3,24 @@ package com.main.kafka.service;
 import com.main.kafka.dto.CouponEvent;
 import com.main.kafka.dto.Response;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.SessionCallback;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CouponService {
@@ -62,8 +67,12 @@ public class CouponService {
             return Response.payload(false, "시스템이 혼잡한 상태");
         }
 
-        boolean acquired = decreaseCouponStock(couponId, userId);
-        if (acquired) {
+        // 트랜잭션 처리보다는 lua 스크립트쪽이 원자성이 보장되는거 같음
+        Long result = decreaseCouponStockScript(couponId, userId);
+
+        if (result == null || result == 0) {
+            return Response.payload(false, "쿠폰 소진");
+        } else {
             CouponEvent event = CouponEvent.builder()
                     .couponId(couponId)
                     .userId(userId)
@@ -73,7 +82,80 @@ public class CouponService {
             kafkaTemplate.send(topics, event);
             return Response.payload(true, event,"쿠폰 발급 이력 저장");
         }
-        return Response.payload(false, "쿠폰 소진");
+    }
+
+    public void decreaseStock(String couponId, String userId) {
+        log.info("요청자 : {}", userId);
+        if (hasAlreadyAcquired(couponId, userId)) {
+            return;
+        }
+        // lua 스크립트 테스트
+        Long result = decreaseCouponStockScript(couponId, userId);
+
+        if (result == null || result == 0) {
+            log.info("쿠폰 재고 소진 : {}", couponId);
+        } else if (result == -1){
+            log.info("이미 발급 받은 사용자 : {}", userId);
+        } else {
+            CouponEvent event = CouponEvent.builder()
+                    .couponId(couponId)
+                    .userId(userId)
+                    .eventType(CouponEvent.EventType.ISSUE)
+                    .time(LocalDateTime.now())
+                    .build();
+            kafkaTemplate.send(topics, event);
+            log.info("쿠폰 획득 : {}", userId);
+        }
+
+
+        // 트랜잭션 테스트
+//        boolean locked = redisTemplate.opsForValue()
+//                .setIfAbsent(LOCK_KEY_PREFIX + couponId,
+//                        userId,
+//                        1, TimeUnit.SECONDS);
+//
+//        if (!locked) {
+//            log.info("시스템이 혼잡한 상태 : {}, userId : {}", couponId, userId);
+//            return;
+//        }
+//
+//        boolean acquired = decreaseCouponStock(couponId, userId);
+//        if (acquired) {
+//          log.info("쿠폰 획득 : {}", userId);
+//        }
+//        log.info("쿠폰 재고 소진 : {}", couponId);
+    }
+
+    public Long decreaseCouponStockScript(String couponId, String userId) {
+        // 2. Lua 스크립트 정의 (직접 문자열로 작성)
+        String luaScript =
+                "local stockKey = KEYS[1]\n" +
+                        "local historyKey = KEYS[2]\n" +
+                        "local userId = ARGV[1]\n" +
+                        "local timestamp = ARGV[2]\n" +
+                        "if tonumber(redis.call('GET', stockKey)) <= 0 then\n" +
+                        "    return 0\n" +
+                        "end\n" +
+                        "if redis.call('HEXISTS', historyKey, userId) == 1 then\n" +
+                        "    return -1\n" +
+                        "end\n" +
+                        "redis.call('DECR', stockKey)\n" +
+                        "redis.call('HSET', historyKey, userId, timestamp)\n" +
+                        "return 1";
+
+        // 3. 스크립트 실행
+        DefaultRedisScript<Long> redisScript = new DefaultRedisScript<>(luaScript, Long.class);
+        List<String> keys = Arrays.asList(
+                STOCK_KEY_PREFIX + couponId,
+                HISTORY_KEY_PREFIX + couponId
+        );
+
+        return redisTemplate.execute(
+                redisScript,
+                keys,
+                userId,
+                LocalDateTime.now().toString()
+        );
     }
 
     /**
@@ -113,5 +195,10 @@ public class CouponService {
     public int remainCouponStock(String couponId) {
         return (Integer) redisTemplate.opsForValue()
                 .get(STOCK_KEY_PREFIX + couponId);
+    }
+
+    public Map<Object, Object> couponAcquiredList(String couponId) {
+        return redisTemplate.opsForHash()
+                .entries(HISTORY_KEY_PREFIX + couponId);
     }
 }
